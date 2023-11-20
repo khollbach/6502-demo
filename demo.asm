@@ -102,7 +102,7 @@ genMap:
   bpl raisewalls
   bmi lowerwalls
 newinflectionpoint:
-  lda $fe
+  lda $c000 ;$fe ; KEVAN: RNG (TODO) -- currently just reads last key-press
   and #$f ;make 4-bit
   asl     ;double (make even number)
   sta $80 ;set $80 to random value
