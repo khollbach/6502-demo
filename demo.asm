@@ -6,50 +6,6 @@ loop:
   jsr genMap
   jmp loop
 
-testMemory:
-  rts
-  pha
-  txa
-  pha
-
-  lda #0
-  ldx $10
-  sta $500,x
-  ldx $78
-  lda #1
-  sta $500,x
-  stx $10
-
-  lda #0
-  ldx $11
-  sta $500,x
-  ldx $79
-  lda #3
-  sta $500,x
-  stx $11
-
-  lda #0
-  ldx $12
-  sta $500,x
-  ldx $7a
-  lda #4
-  sta $500,x
-  stx $12
-
-  lda #0
-  ldx $13
-  sta $500,x
-  ldx $7b
-  lda #4
-  sta $500,x
-  stx $13
-
-  pla
-  tax
-  pla
-
-  rts
-
 init:
   ldx #0
   lda walls
