@@ -123,4 +123,4 @@ pixels:
   .byte $80,$03,$a0,$03,$c0,$03,$e0,$03
 
 walls:
-  .byte $d
+  .byte $c
