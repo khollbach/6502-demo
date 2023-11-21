@@ -48,10 +48,10 @@ drawinitialwalls:
 
   ; Set initial inflection point.
   lda #$10
-  sta $90
+  sta $94
 
-  ; Fill $80..$90 with $10 (initial wall offset).
-  ldx #$0f
+  ; Fill $80..$94 with $10 (initial wall offset).
+  ldx #$13
 setinitialwalloffsets:
   sta $80,x
   dex
@@ -138,34 +138,34 @@ drawLoop:
   sta $7f,x
 
   inx
-  cpx #$10
+  cpx #$14
   bne drawLoop
   rts
 
 ; ---
 
 updateMap:
-  lda $90 ; $90 is next wall inflection point
-  cmp $8f ; $8f is next wall offset
+  lda $94 ; $94 is next wall inflection point
+  cmp $93 ; $93 is next wall offset
   beq newinflectionpoint
-  lda $90
+  lda $94
   clc
-  sbc $8f ; Is next wall offset above or below inflection point?
+  sbc $93 ; Is next wall offset above or below inflection point?
   bpl raisewalls
   bmi lowerwalls
 newinflectionpoint:
   lda $c000 ;$fe ; KEVAN: RNG (TODO) -- currently just reads last key-press
   and #$f ; Make 4-bit.
   asl     ; Double (make even number)
-  sta $90 ; Set $90 to random value.
+  sta $94 ; Set $94 to random value.
   rts
 lowerwalls:
-  dec $8f
-  dec $8f
+  dec $93
+  dec $93
   rts
 raisewalls:
-  inc $8f
-  inc $8f
+  inc $93
+  inc $93
   rts
 
 tunnel:
