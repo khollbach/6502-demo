@@ -57,6 +57,8 @@ setinitialwalloffsets:
   dex
   bpl setinitialwalloffsets
 
+  jsr seedrng
+
   rts
 
 ; ---
@@ -154,7 +156,8 @@ updateMap:
   bpl raisewalls
   bmi lowerwalls
 newinflectionpoint:
-  lda $c000 ;$fe ; KEVAN: RNG (TODO) -- currently just reads last key-press
+  jsr rngnext
+  lda $fe
   and #$f ; Make 4-bit.
   asl     ; Double (make even number)
   sta $94 ; Set $94 to random value.
@@ -166,6 +169,22 @@ lowerwalls:
 raisewalls:
   inc $93
   inc $93
+  rts
+
+seedrng:
+  lda #$ab ; Use a fixed seed of $ab.
+  sta $fe
+  rts
+
+; naive xorshift rng, from:
+; https://codebase64.org/doku.php?id=base:small_fast_8-bit_prng
+rngnext:
+  lda $fe
+  asl
+  bcc noEor
+  eor #$1d
+noEor:
+  sta $fe
   rts
 
 tunnel:
