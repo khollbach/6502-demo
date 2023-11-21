@@ -1,167 +1,174 @@
 start:
-  sta $c050  ; text mode off
-  jsr drawinitialmap
-
-halt:
-  jmp halt
-
   jsr init
-
 loop:
   jsr drawMap
-  jsr genMap
+  jsr updateMap
   jmp loop
 
-drawinitialmap:
+init:
+  sta $c050 ; text mode off
+
   ldx #$27
 drawinitialwalls:
   lda walls
 
   ; Top
-  sta $400,x
-  sta $480,x
-  sta $500,x
-  sta $580,x
-  sta $600,x
-  sta $680,x
-  sta $700,x
-  sta $780,x
+  sta $0400,x
+  sta $0480,x
+  sta $0500,x
+  sta $0580,x
+  sta $0600,x
+  sta $0680,x
+  sta $0700,x
+  sta $0780,x
 
   ; Bottom
-  sta $450,x
-  sta $4d0,x
-  sta $550,x
-  sta $5d0,x
-  sta $650,x
-  sta $6d0,x
-  sta $750,x
-  sta $7d0,x
+  sta $0450,x
+  sta $04d0,x
+  sta $0550,x
+  sta $05d0,x
+  sta $0650,x
+  sta $06d0,x
+  sta $0750,x
+  sta $07d0,x
 
   ; Tunnel
-  lda #$00
-  sta $428,x
-  sta $4a8,x
-  sta $528,x
-  sta $5a8,x
-  sta $628,x
-  sta $6a8,x
-  sta $728,x
-  sta $7a8,x
+  lda tunnel
+  sta $0428,x
+  sta $04a8,x
+  sta $0528,x
+  sta $05a8,x
+  sta $0628,x
+  sta $06a8,x
+  sta $0728,x
+  sta $07a8,x
 
   dex
   bpl drawinitialwalls
-  rts
 
-init:
+  ; Set initial inflection point.
   lda #$10
-  sta $80
-  ldx #$0f
+  sta $90
 
-;fill $81-$90 with $10 (initial wall offset)
+  ; Fill $80..$90 with $10 (initial wall offset).
+  ldx #$0f
 setinitialwalloffsets:
-  sta $81,x  ; target
+  sta $80,x
   dex
   bpl setinitialwalloffsets
+
   rts
 
-;--
+; ---
 
 drawMap:
-  lda #$00
-  sta $78
-  lda #$20
-  sta $79
-  lda #$c0
-  sta $7a
-  lda #$e0
-  sta $7b
 
-  ldx #$0f
+  ldx #$00
 drawLoop:
-  lda $81,x
-  sta $82,x ;shift wall offsets along
-
-  tay
-  sty $02      ;store current wall offset in $02
-  lda pixels,y ;lookup current wall offset in pixels
-  sta $00      ;and store it in $00
-  iny
-  lda pixels,y ;lookup current wall offset + 1 in pixels
-  sta $01      ;and store it in $01
-               ;$00 now points to a two-byte pixel memory location
+  ; Draw walls.
 
   lda walls
   jsr $F864 ; SETCOL
 
-  ldy $78      ;top edge of wall
-  sta ($00),y
-  iny
-  sta ($00),y
+  txa
+  asl a
+  tay ; y := 2*x (width)
+  lda $80,x ; a := offsets[x] (height)
+  sta $2d
+  inc $2d
+  jsr $F828 ; VLINE (scrambles a)
 
-  ldy $7b
-  sta ($00),y ;bottom edge of wall
-  iny
-  sta ($00),y
+  lda $80,x
+  clc
+  adc #$0e ; a := offsets[x] + 0x0e
+  sta $2d
+  inc $2d
+  jsr $F828
 
-  lda #$88 ; TODO(KEVAN) revert after testing -- brown for now. ;#0      ;black for tunnel
-  jsr $F864 ; SETCOL
+  iny ; y := 2*x + 1
+  lda $80,x
+  sta $2d
+  inc $2d
+  jsr $F828
 
-  ldy $79     ;top edge of tunnel
-  sta ($00),y
-  iny
-  sta ($00),y
+  lda $80,x
+  clc
+  adc #$0e
+  sta $2d
+  inc $2d
+  jsr $F828
 
-  ldy $7a
-  sta ($00),y ;bottom edge of tunnel
-  iny
-  sta ($00),y
+  ; Draw tunnel.
 
-  ; move offsets right two pixels
-  inc $78
-  inc $79
-  inc $7a
-  inc $7b
-  inc $78
-  inc $79
-  inc $7a
-  inc $7b
-  dex
-  bpl drawLoop
+  lda tunnel
+  jsr $F864
+
+  dey ; y := 2*x
+  lda $80,x
+  clc
+  adc #$02 ; a := offsets[x] + 0x02
+  sta $2d
+  inc $2d
+  jsr $F828
+
+  lda $80,x
+  clc
+  adc #$0c ; a := offsets[x] + 0x0c
+  sta $2d
+  inc $2d
+  jsr $F828
+
+  iny ; y := 2*x + 1
+  lda $80,x
+  clc
+  adc #$02
+  sta $2d
+  inc $2d
+  jsr $F828
+
+  lda $80,x
+  clc
+  adc #$0c
+  sta $2d
+  inc $2d
+  jsr $F828
+
+  ; Shift offsets over as we go.
+  lda $80,x
+  sta $7f,x
+
+  inx
+  cpx #$10
+  bne drawLoop
   rts
 
-;---
+; ---
 
-genMap:
-  lda $80 ;$80 is next wall inflection point
-  cmp $81 ;$81 is next wall offset
+updateMap:
+  lda $90 ; $90 is next wall inflection point
+  cmp $8f ; $8f is next wall offset
   beq newinflectionpoint
-  lda $80
+  lda $90
   clc
-  sbc $81 ;is next wall offset above or below inflection point?
+  sbc $8f ; Is next wall offset above or below inflection point?
   bpl raisewalls
   bmi lowerwalls
 newinflectionpoint:
   lda $c000 ;$fe ; KEVAN: RNG (TODO) -- currently just reads last key-press
-  and #$f ;make 4-bit
-  asl     ;double (make even number)
-  sta $80 ;set $80 to random value
+  and #$f ; Make 4-bit.
+  asl     ; Double (make even number)
+  sta $90 ; Set $90 to random value.
   rts
 lowerwalls:
-  dec $81
-  dec $81
+  dec $8f
+  dec $8f
   rts
 raisewalls:
-  inc $81
-  inc $81
+  inc $8f
+  inc $8f
   rts
 
-; ===
-
-pixels:
-  .byte $00,$02,$20,$02,$40,$02,$60,$02
-  .byte $80,$02,$a0,$02,$c0,$02,$e0,$02
-  .byte $00,$03,$20,$03,$40,$03,$60,$03
-  .byte $80,$03,$a0,$03,$c0,$03,$e0,$03
-
+tunnel:
+  .byte $00
 walls:
   .byte $cc
