@@ -9,9 +9,8 @@ init:
   sta $c050 ; text mode off
 
   ldx #$27
-drawinitialwalls:
+drawInitialScreen:
   lda walls
-
   ; Top
   sta $0400,x
   sta $0480,x
@@ -21,7 +20,6 @@ drawinitialwalls:
   sta $0680,x
   sta $0700,x
   sta $0780,x
-
   ; Bottom
   sta $0450,x
   sta $04d0,x
@@ -32,7 +30,6 @@ drawinitialwalls:
   sta $0750,x
   sta $07d0,x
 
-  ; Tunnel
   lda tunnel
   sta $0428,x
   sta $04a8,x
@@ -44,7 +41,7 @@ drawinitialwalls:
   sta $07a8,x
 
   dex
-  bpl drawinitialwalls
+  bpl drawInitialScreen
 
   ; Set initial inflection point.
   lda #$10
@@ -57,7 +54,7 @@ setinitialwalloffsets:
   dex
   bpl setinitialwalloffsets
 
-  jsr seedrng
+  jsr seedRng
 
   rts
 
@@ -147,38 +144,38 @@ drawLoop:
 ; ---
 
 updateMap:
-  lda $94 ; $94 is next wall inflection point
-  cmp $93 ; $93 is next wall offset
-  beq newinflectionpoint
+  lda $94 ; Address of next inflection point.
+  cmp $93 ; Address of next wall offset.
+  beq newInflectionPoint
   lda $94
   clc
-  sbc $93 ; Is next wall offset above or below inflection point?
-  bpl raisewalls
-  bmi lowerwalls
-newinflectionpoint:
-  jsr rngnext
+  sbc $93 ; Is the next wall offset above or below the inflection point?
+  bpl raiseWalls
+  bmi lowerWalls
+newInflectionPoint:
+  jsr rngNext
   lda $fe
-  and #$f ; Make 4-bit.
-  asl     ; Double (make even number)
-  sta $94 ; Set $94 to random value.
+  and #$f ; Random number in 0x00..0x10.
+  asl     ; Double to account for each cell having top and bottom halves.
+  sta $94 ; Random even number in 0x00..0x20.
   rts
-lowerwalls:
+lowerWalls:
   dec $93
   dec $93
   rts
-raisewalls:
+raiseWalls:
   inc $93
   inc $93
   rts
 
-seedrng:
+seedRng:
   lda #$ab ; Use a fixed seed of $ab.
   sta $fe
   rts
 
 ; naive xorshift rng, from:
 ; https://codebase64.org/doku.php?id=base:small_fast_8-bit_prng
-rngnext:
+rngNext:
   lda $fe
   asl
   bcc noEor
