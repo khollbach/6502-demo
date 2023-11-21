@@ -1,6 +1,10 @@
 start:
   sta $c050  ; text mode off
-  jsr clearscreen
+  jsr drawinitialmap
+
+halt:
+  jmp halt
+
   jsr init
 
 loop:
@@ -8,18 +12,47 @@ loop:
   jsr genMap
   jmp loop
 
-init:
-  ldx #0
+drawinitialmap:
+  ldx #$27
+drawinitialwalls:
   lda walls
 
-;draw exactly 256 pixels of wall at top and bottom
-drawinitialwalls:
-  sta $200,x ;draw the top bit of wall
-  sta $400,x ;draw the bottom bit of wall
-  dex        ;count down from 0
-  cpx #0     ;until we hit 0
-  bne drawinitialwalls
+  ; Top
+  sta $400,x
+  sta $480,x
+  sta $500,x
+  sta $580,x
+  sta $600,x
+  sta $680,x
+  sta $700,x
+  sta $780,x
 
+  ; Bottom
+  sta $450,x
+  sta $4d0,x
+  sta $550,x
+  sta $5d0,x
+  sta $650,x
+  sta $6d0,x
+  sta $750,x
+  sta $7d0,x
+
+  ; Tunnel
+  lda #$00
+  sta $428,x
+  sta $4a8,x
+  sta $528,x
+  sta $5a8,x
+  sta $628,x
+  sta $6a8,x
+  sta $728,x
+  sta $7a8,x
+
+  dex
+  bpl drawinitialwalls
+  rts
+
+init:
   lda #$10
   sta $80
   ldx #$0f
@@ -58,6 +91,8 @@ drawLoop:
                ;$00 now points to a two-byte pixel memory location
 
   lda walls
+  jsr $F864 ; SETCOL
+
   ldy $78      ;top edge of wall
   sta ($00),y
   iny
@@ -68,8 +103,10 @@ drawLoop:
   iny
   sta ($00),y
 
-  ldy $79     ;top edge of tunnel
   lda #$88 ; TODO(KEVAN) revert after testing -- brown for now. ;#0      ;black for tunnel
+  jsr $F864 ; SETCOL
+
+  ldy $79     ;top edge of tunnel
   sta ($00),y
   iny
   sta ($00),y
@@ -116,34 +153,6 @@ lowerwalls:
 raisewalls:
   inc $81
   inc $81
-  rts
-
-; ===
-
-clearscreen:  ; memset 0x0400..0x0800 to black (0x00)
-  lda #$00 ; black
-  ldy #$04
-
-clearpage:
-  ldx #$ff
-clearpage_innerloop:
-  ; There's gotta be a simpler way to do this, but I'll just
-  ; use some zero-page memory to get this to work.
-  stx $f0
-  sty $f1
-  stx $f2
-  tax ; zero
-  sta ($f0,X)
-  ldx $f2
-
-  dex
-  cpx #$ff
-  bne clearpage_innerloop
-
-  iny
-  cpy #$08
-  bne clearpage
-
   rts
 
 ; ===
