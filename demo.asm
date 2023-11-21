@@ -1,4 +1,6 @@
 start:
+  sta $c050  ; text mode off
+  jsr clearscreen
   jsr init
 
 loop:
@@ -67,7 +69,7 @@ drawLoop:
   sta ($00),y
 
   ldy $79     ;top edge of tunnel
-  lda #0      ;black for tunnel
+  lda #$88 ; TODO(KEVAN) revert after testing -- brown for now. ;#0      ;black for tunnel
   sta ($00),y
   iny
   sta ($00),y
@@ -116,6 +118,36 @@ raisewalls:
   inc $81
   rts
 
+; ===
+
+clearscreen:  ; memset 0x0400..0x0800 to black (0x00)
+  lda #$00 ; black
+  ldy #$04
+
+clearpage:
+  ldx #$ff
+clearpage_innerloop:
+  ; There's gotta be a simpler way to do this, but I'll just
+  ; use some zero-page memory to get this to work.
+  stx $f0
+  sty $f1
+  stx $f2
+  tax ; zero
+  sta ($f0,X)
+  ldx $f2
+
+  dex
+  cpx #$ff
+  bne clearpage_innerloop
+
+  iny
+  cpy #$08
+  bne clearpage
+
+  rts
+
+; ===
+
 pixels:
   .byte $00,$02,$20,$02,$40,$02,$60,$02
   .byte $80,$02,$a0,$02,$c0,$02,$e0,$02
@@ -123,4 +155,4 @@ pixels:
   .byte $80,$03,$a0,$03,$c0,$03,$e0,$03
 
 walls:
-  .byte $c
+  .byte $cc
